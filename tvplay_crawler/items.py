@@ -32,6 +32,17 @@ class TvplaySource(scrapy.Item):
     video_source_items = []
 
 
+class TvplayExtend(scrapy.Item):
+    id = scrapy.Field()
+    v_id = scrapy.Field()
+    #1连载 2完结 3未开播
+    status = scrapy.Field()
+    #总集数
+    video_count = scrapy.Field()
+    #更新到第几季
+    renew_num = scrapy.Field()
+    subscribe_num = scrapy.Field()
+
 class TvplayCrawlerItem(scrapy.Item):
     # define the fields for your item here like:
     # name = scrapy.Field()
@@ -41,7 +52,10 @@ class TvplayCrawlerItem(scrapy.Item):
     aliases = scrapy.Field()
     score = scrapy.Field()
     image = scrapy.Field()
+    #类目 1电视剧 2电影 3动漫 4综艺
     category = scrapy.Field()
+    #剧情类型 科幻/爱情
+    video_type = scrapy.Field()
     area = scrapy.Field()
     #上映日期
     video_time = scrapy.Field()
@@ -53,4 +67,5 @@ class TvplayCrawlerItem(scrapy.Item):
     renew = scrapy.Field()
     #英剧/美剧
     tv_type = scrapy.Field()
-    video_source = TvplaySource(v_id=id)
+    video_sources = []
+    video_extend = TvplayExtend(v_id=id)

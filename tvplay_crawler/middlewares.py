@@ -85,7 +85,6 @@ class TvplayCrawlerDownloaderMiddleware(object):
         # - or raise IgnoreRequest: process_exception() methods of
         #   installed downloader middleware will be called
         if spider.name == 'zimuzu':
-            mFileLogger.error(request.url)
             if 'www.zimuzu.tv/resource/' in request.url:
                 try:
                     spider.browser.get(request.url)
