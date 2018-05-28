@@ -49,11 +49,11 @@ class ZimuzuSpider(scrapy.Spider):
         self.page_count = len(links)
         mLogger.debug('当前页个数:' + str(self.page_count))
         for i, link in enumerate(links):
-            if i > 0:
-                break
+            # if i > 0:
+            #     break
             next_url = link.css(
                 'div.fl-info dl dt h3 a::attr(href)').extract_first()
-            mLogger.debug(self.domain + next_url)
+            # mLogger.debug(self.domain + next_url)
             vScore = link.css('div.fl-img a span em::text').extract_first(
             ) + link.css('div.fl-img a span::text').extract_first()
             mLogger.debug("分数:" + vScore)
@@ -91,14 +91,11 @@ class ZimuzuSpider(scrapy.Spider):
         mLogger.debug("剧类型:" + vTvType)
         statusNode = response.css('div.resource-tit h2 label::text').extract_first()
         status = 3
-        renew_num = 1
         if statusNode is not None:
             if "连载中" in statusNode:
                 status = 1
-                renew_num = statusNode[1:statusNode.index("季连载中")]
             elif "完结" in statusNode:
                 status = 2
-                renew_num = statusNode[1:statusNode.index("季完结")]
             elif "已上映" in statusNode:
                 status = 2
             else:
@@ -115,9 +112,9 @@ class ZimuzuSpider(scrapy.Spider):
                 video_info['category'] = 4
             else:
                 video_info['category'] = 5
-            video_extend = video_info.video_extend
+            video_extend = TvplayExtend()
             video_extend['status'] = status
-            video_extend['renew_num'] = renew_num
+            video_info['video_extend'] = video_extend
             # mLogger.debug(video_extend)
             lis = response.css('div.fl-info ul li')
             for li in lis:
@@ -145,8 +142,9 @@ class ZimuzuSpider(scrapy.Spider):
             vSynopsis = "".join(vSynopsisList)
             vSynopsis = vSynopsis.replace("【版权方要求，本站仅提供字幕，请站内搜索下载】","")
             video_info['synopsis'] = vSynopsis
-
-            video_sources = video_info.video_sources
+            
+            video_sources = []
+            mLogger.debug("video_name : " + video_info["video_name"] + " video_sources length : " + str(len(video_info.get('video_sources', []))))
             zimuzu_source = TvplaySource()
             zimuzu_source['source_name'] = '人人影视'
             zimuzu_source['video_src'] = response.url
@@ -175,9 +173,14 @@ class ZimuzuSpider(scrapy.Spider):
             video_sources.append(baiduyun_source)
             video_sources.append(weiyun_source)
             video_sources.append(fantexi_source)
+            video_info['video_sources'] = video_sources
 
             next_url = response.css('div.view-res-list div h3 a::attr(href)').extract_first()
-            yield response.follow(next_url, callback=self.parse_video_source)
+            mLogger.debug("next_url:" + next_url)
+            if "http://zmz003.com" in next_url:
+                yield response.follow(next_url, callback=self.parse_video_source)
+            else:
+                yield video_info
     
     #解析视频资源
     def parse_video_source(self, response):
@@ -187,36 +190,40 @@ class ZimuzuSpider(scrapy.Spider):
         mLogger.debug('视频资源:' + vTvType + vName)
         video_info = self.videos.get(vTvType + vName)
 
-        zimuzu_source = self.search_from_videosources("人人影视", video_info.video_sources)
+        zimuzu_source = self.search_from_videosources("人人影视", video_info['video_sources'])
         if zimuzu_source is not None:
-            zimuzu_source_items = zimuzu_source.video_source_items
+            zimuzu_source_items = []
+            zimuzu_source['video_source_items'] = zimuzu_source_items
             seasonNodes = response.xpath("//div[@class='tab-content info-content']/div[contains(@id, 'sidetab')]")
-            for i, seasonNode in enumerate(seasonNodes):
-                nodeId = seasonNode.xpath('@id').extract_first()
-                mLogger.debug("序号:" + str(i) + " id = " + nodeId)
-                all_tabs = seasonNode.xpath("./div/div[@class='tab-pane']")
-                mLogger.debug("all_tabs length:" + str(len(all_tabs)))
-                for tab in all_tabs:
-                    #人人影视资源 找到含有中字的标签
-                    zhongzi = tab.css("div.infobar span.badge::text").extract_first()
-                    tab_text = tab.css("div.infobar::text").extract_first()
-                    if zhongzi is not None:
-                        mLogger.debug("zhongzi:" + zhongzi)
-                    if tab_text is not None:
-                        mLogger.debug("tab_text:" + tab_text)
-                    if zhongzi is not None and "中字" in zhongzi:
-                        item_chinese = tab.css('ul.down-list li')
-                        if item_chinese is not None:
-                            self.parse_source_item(item_chinese, zimuzu_source_items, tab_text)
-                    elif tab_text is not None and "在线" in tab_text:
-                         #百度云、微云、范特西视频资源
-                        item_app = tab.css('ul.down-list li')
-                        if item_app is not None:
-                            self.parse_other_source_item(item_app, video_info.video_sources)
-
-        mLogger.debug(video_info.video_sources)
-        for video_source in video_info.video_sources:
-            mLogger.debug(video_source.video_source_items)
+            if seasonNodes is not None:
+                renew_num = seasonNodes[0].xpath('@id').extract_first()
+                renew_num = renew_num[8:len(renew_num)]
+                video_info['video_extend']['renew_num'] = renew_num
+                for i, seasonNode in enumerate(seasonNodes):
+                    nodeId = seasonNode.xpath('@id').extract_first()
+                    # mLogger.debug("序号:" + str(i) + " id = " + nodeId)
+                    all_tabs = seasonNode.xpath("./div/div[@class='tab-pane']")
+                    # mLogger.debug("all_tabs length:" + str(len(all_tabs)))
+                    for tab in all_tabs:
+                        #人人影视资源 找到含有中字的标签
+                        zhongzi = tab.css("div.infobar span.badge::text").extract_first()
+                        tab_text = tab.css("div.infobar::text").extract_first()
+                        # if zhongzi is not None:
+                        #     mLogger.debug("zhongzi:" + zhongzi)
+                        # if tab_text is not None:
+                        #     mLogger.debug("tab_text:" + tab_text)
+                        if zhongzi is not None and "中字" in zhongzi:
+                            item_chinese = tab.css('ul.down-list li')
+                            if item_chinese is not None:
+                                self.parse_source_item(item_chinese, zimuzu_source_items, tab_text)
+                        elif tab_text is not None and "在线" in tab_text:
+                            #百度云、微云、范特西视频资源
+                            item_app = tab.css('ul.down-list li')
+                            if item_app is not None:
+                                self.parse_other_source_item(item_app, video_info['video_sources'])
+        # mLogger.debug(video_info.video_sources)
+        # for video_source in video_info.video_sources:
+        #     mLogger.debug(video_source.video_source_items)
         yield video_info
 
     def parse_source_item(self, items, video_source_items, definition):
@@ -275,7 +282,9 @@ class ZimuzuSpider(scrapy.Spider):
                         continue
                     video_source = self.search_from_videosources(wherefrom, video_sources)
                     if video_source is not None:
-                        video_source_items = video_source.video_source_items
+                        video_source_items = video_source.get('video_source_items', [])
+                        if len(video_source_items) == 0:
+                            video_source['video_source_items'] = video_source_items
                         video_source_item = TvplaySourceItem()
                         video_source_item['name'] = itemName
                         video_source_item['source'] = source.css('a::attr(href)').extract_first()

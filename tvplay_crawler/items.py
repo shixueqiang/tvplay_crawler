@@ -29,7 +29,8 @@ class TvplaySource(scrapy.Item):
     is_member = scrapy.Field()
     is_danmu = scrapy.Field()
     is_on_line = scrapy.Field()
-    video_source_items = []
+    #分集资源列表
+    video_source_items = scrapy.Field()
 
 
 class TvplayExtend(scrapy.Item):
@@ -67,5 +68,7 @@ class TvplayCrawlerItem(scrapy.Item):
     renew = scrapy.Field()
     #英剧/美剧
     tv_type = scrapy.Field()
-    video_sources = []
-    video_extend = TvplayExtend(v_id=id)
+    #资源列表
+    video_sources = scrapy.Field()
+    #视频扩展
+    video_extend = scrapy.Field()
