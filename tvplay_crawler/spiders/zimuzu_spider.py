@@ -75,7 +75,7 @@ class ZimuzuSpider(scrapy.Spider):
             parsed_url = urlparse(last_page)
             self.total_page = int(parse_qs(parsed_url.query)['page'][0])
         mLogger.debug('总页数:' + str(self.total_page))
-        if self.cur_page < 1:
+        if self.cur_page < self.total_page:
             yield response.follow(
                 'http://www.zimuzu.tv/resourcelist?channel=&area=&category=&year=&tvstation=&sort=rank&page='
                 + str(self.cur_page + 1),
